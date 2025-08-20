@@ -45,8 +45,11 @@
 ;;; in the latter case, xlib::homedir-file-pathname may need a patch to recognize osx.
 
 ;;; for my 'localhost', either or
+#||
 (setq *clx-display-host* "yoda.setf.de")
 (setq *clx-display-host* "192.168.1.25")
+||#
+
 ;;; or disable authorization
 ;;; xhost +192.168.1.25
 
@@ -61,7 +64,14 @@
 #+(or )                                 ; to start
 (initialize-clx-tests)
 
+
 (defun initialize-clx-tests ()
+
+  
+  (unless *clx-default-display*
+    (setq *clx-default-display* (xlib:open-default-display)))
+
+  #+nil
   (unless *clx-default-display*
     #+:cmu
     (setq *clx-default-display* (ext:open-clx-display))
@@ -75,10 +85,18 @@
     )
   
   ;; no (setf (context-view *clx-c*) *clc-w*)
-  (setq *clx-c* (make-instance 'clx-context :display *clx-default-display*
-                               :view-size *test-view-size*))
+  (if *clx-c*
+    (assert (eql (context-display *clx-c*) *clx-default-display*))
+    (setq *clx-c* (make-instance 'clx-context :display *clx-default-display*
+				 :view-size *test-view-size*)))
   (setq *test-context* *clx-c*)
+
+  ;;madhu 250809
+  (define-font  *clx-c* "fixed" :fixed)
   )
+
+#+nil
+(get-font *clx-c* :fixed)
 
 
 (defmethod initialize-test-context ((context clx-context) &key &allow-other-keys)
@@ -123,6 +141,10 @@
       (4321 (find :clx-little-endian *features*)))))
 ;; (test:execute-test :og.clx.endian)
 
+#||
+(require 'cffi)
+(cffi:foreign-type-size :rect)??
+||#
 
 (og::test-clx og.clx.ffi
   "test direct xlib interface operators"
@@ -184,6 +206,15 @@
         ;; (print (context-state))
         t))))
 ;; (test:execute-test :og.clx.ffi)
+
+#+nil
+(progn
+  (initialize-clx-tests)
+  (with-projection-context  (*clx-c*)
+
+  ;;(test:execute-test :og.clx.ffi)
+  (test:execute-test :og.clx.context.size)))
+
 
 
 (og::test-clx og.clx.context.size
@@ -259,8 +290,17 @@
 
 ;;; iff there already is one
 
+#+nil
 (when (typep *clx-c* 'clx-context)
   (execute-graphics-clx-tests))
+
+;;; if the display is lost or to start over
+#+nil
+(progn
+  (ignore-errors (xlib:close-display *clx-default-display*))
+  (setq *clx-default-display* nil)
+  (setq *clx-c* nil)
+  (initialize-clx-tests))
 
 ;; (setf (context-log *clx-c*) nil) ;;  *trace-output*)
 ;; (with-projection-context (*clx-c*) (test:execute-test :og.projection.poly.3 :break-on-signals t))
@@ -273,4 +313,18 @@
 ;; (time (with-projection-context (*clx-c*) (initialize-test-context *clx-c*) (test-sampler-animation :count 100 :sleep nil)))
 ;; (with-projection-context (*clx-c*) (initialize-test-context *clx-c*) (run-life :cycles 256 :sleep nil :initialize-p t :size 512))
 
+
+;;; ----------------------------------------------------------------------
+;;;
+;;; convenience
+;;;
 
+(defmacro t1 (test)
+  `(with-projection-context (*clx-c*)
+     (initialize-test-context *clx-C*)
+     (test:execute-test ,test :debug t :force-p t)))
+
+(defmacro w (&body body)
+  `(with-projection-context (*clx-c*)
+     (prog1 (progn ,@body)
+       (flush-view))))
