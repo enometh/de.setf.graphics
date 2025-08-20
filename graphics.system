@@ -1,0 +1,128 @@
+;;; -*- Mode: LISP; Package: :cl-user; BASE: 10; Syntax: ANSI-Common-Lisp; -*-
+;;;
+;;;   Time-stamp: <>
+;;;   Touched: Thu Aug 07 12:39:49 2025 +0530 <enometh@net.meer>
+;;;   Bugs-To: enometh@net.meer
+;;;   Status: Experimental.  Do not redistribute
+;;;   Copyright (C) 2025 Madhu.  All Rights Reserved.
+;;;
+(in-package "CL-USER")
+
+(defvar *de.setf.graphics-source-dir*
+  (merge-pathnames "Github/de.setf.graphics/"
+		   (translate-logical-pathname "EXTERN:")))
+(defvar *de.setf.graphics-binary-dir*
+  (binary-directory *de.setf.graphics-source-dir*))
+
+(mk:defsystem :de.setf.graphics.opengl
+  :source-pathname *de.setf.graphics-source-dir*
+  :binary-pathname *de.setf.graphics-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:de.setf.graphics)
+  :components ((:module "opengl"
+		:components ((:file "external")
+			     (:file "package"
+			      :depends-on ("external"))
+			     (:file "opengl"
+			      :depends-on ("package"))))))
+
+#+nil
+(mk:oos :de.setf.graphics.opengl :load :compile-during-load t)
+
+(mk:defsystem :de.setf.graphics.tests
+  :source-pathname *de.setf.graphics-source-dir*
+  :binary-pathname *de.setf.graphics-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:de.setf.graphics)
+  :components ((:module "tests"
+		:components ((:module :geometry
+			      :components ((:file "matrix")))
+			     (:module :projection
+			      :components ((:file "drawing-mode")
+					   (:file "sampler")
+					   (:file "life-in-color")
+					   (:file "abstract-projection"
+					    :depends-on ("drawing-mode"
+							 "sampler"
+							 "life-in-color"))
+					   (:file "ops-per-second")))))))
+
+#+nil
+(mk:oos :de.setf.graphics.tests :load :compile-during-load t)
+
+(mk:defsystem :de.setf.graphics.clx
+  :source-pathname *de.setf.graphics-source-dir*
+  :binary-pathname *de.setf.graphics-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:de.setf.graphics :clx-portable)
+  :components ((:module "clx"
+		:components (#+nil(:file "external")
+			     (:file "clx")))))
+
+#+nil
+(mk:oos :de.setf.graphics.clx :load :compile-during-load t)
+
+
+(mk:defsystem :de.setf.graphics
+  :source-pathname *de.setf.graphics-source-dir*
+  :binary-pathname *de.setf.graphics-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:de.setf.utility
+	       :closer-mop
+	       :de.setf.utility.clos
+	       :de.setf.utility.graph
+	       :de.setf.utility.mime
+	       :de.setf.utility.codecs
+	       :de.setf.utility.bt-lock)
+  :components ((:module "libraries"
+		:source-pathname ""
+		:description "incorporates additional library modules"
+		;; ;madhu 250808 - nop -- load via other system
+		:components ())
+	       (:module "base"
+		:depends-on ("libraries")
+		:components ((:file "package")
+			     (:file "docstub")
+			     (:file "parameters"
+			      :depends-on ("package"))
+			     (:file "utilities"
+			      :depends-on ("parameters"))))
+	       (:module "geometry"
+		:description "class and operation definitions for geometry location primitives"
+		:depends-on ("base")
+		:components ((:file "locations")
+			     (:file "location-math"
+			      :depends-on ("locations"))
+			     (:file "matrix"
+			      :depends-on ("location-math"))
+			     (:file "transform-context"
+			      :depends-on ("matrix"
+					   "locations"))
+			     (:file "location-transform"
+			      :depends-on ("transform-context"))))
+	       (:module "model"
+		:description "class definitions for model components."
+		:depends-on ("geometry")
+		:components ((:file "abstract")
+			     (:file "geometric-constituents"
+			      :depends-on ("abstract"))
+			     (:file "raster"
+			      :depends-on ("abstract"))))
+	       (:module "projection"
+		:description "operation definitions for rendering.
+ This includes both the abstract definitions and the concrete implementation for
+ the respective graphics libraries. portable libraries are included by default -
+ svg, clx, gd. others are included iff the lisp implementation includes them."
+		:depends-on ("geometry"
+			     "model")
+		:components ((:file "abstract-projection")
+			     (:file "port-transform-context"
+			      :depends-on ("abstract-projection"))
+			     (:file "ndc-transform-context"
+			      :depends-on ("abstract-projection"))))))
+
+#+nil
+(mk:oos :de.setf.graphics :load :compile-during-load t)
+
+
+
