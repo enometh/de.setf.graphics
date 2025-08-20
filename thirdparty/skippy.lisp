@@ -1,8 +1,8 @@
-;;;; 
+;;;;
 ;;;; skippy.lisp
-;;;; 
+;;;;
 ;;;; Created: 2005-03-06 by Zach Beane <xach@xach.com>
-;;;; 
+;;;;
 ;;;; GIF-writing functions. Only two functions are exported. Example
 ;;;; usage:
 ;;;;
@@ -37,7 +37,7 @@
 
 
 (defpackage :skippy-legacy
-  (:nicknames :gif)
+  (:nicknames :gif :skippy)
   (:use :cl)
   (:export :gif
            :write-gif
@@ -88,11 +88,13 @@
 (deftype bitstream-buffer ()
   `(simple-array octet (255)))
 
+#||
 (declaim (inline bitstream-buffer))
 (declaim (inline bitstream-offset))
 (declaim (inline bitstream-octet))
 (declaim (inline bitstream-bits-left))
 (declaim (inline bitstream-stream))
+||#
 
 (defstruct (bitstream
              (:constructor
@@ -186,6 +188,7 @@
                    bits-left (- bits-left len)
                    code (ash code (- len))
                    length (- length len))))
+      #+nil
       (declare (inline merge-bits))
       (loop
        (when (< length bits-left)
@@ -430,7 +433,7 @@ frame. If null, frame has no transparent color.")))
           (make-array (* (height frame) (width frame))
                       :element-type '(unsigned-byte 8)
                       :initial-element 0))))
-  
+
 
 (defmethod initialize-instance :after ((frame frame)
                                        &key image height width
@@ -523,7 +526,7 @@ replace any out-of-range character codes with #\\Space."
 
 (defun write-color-table (color-table stream)
   (write-sequence color-table stream))
-       
+
 (defmethod bpp ((frame frame))
   (let ((color-table (or (color-table frame)
                          (color-table (image frame))
@@ -553,7 +556,7 @@ replace any out-of-range character codes with #\\Space."
   (write-byte (bpp frame) stream)
   (lzw-compress (data frame) (bpp frame) stream)
   (write-block-terminator stream))
-  
+
 (defun write-image-header (image stream)
   (write-sequence *gif-signature* stream)
   (write-uint16 (width image) stream)
@@ -626,8 +629,8 @@ replace any out-of-range character codes with #\\Space."
                                            (/ (length (color-table image))
                                               3)))
    (frames image)))
-        
-  
+
+
 
 (defun output-image (image file)
   (with-open-file (stream file
