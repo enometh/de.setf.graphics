@@ -1057,6 +1057,19 @@ are already focused."
 
 
 (defmethod context-clear-view ((context clx-context))
+  ;; backing-pixmap
+  (with-slots (gcontext (drawable backing-pixmap)) context
+    (let ((fill t) (x1 0) (y1 0) (width (xlib:drawable-width drawable))
+	  (height (xlib:drawable-height drawable)))
+      (xlib:with-gcontext (gcontext :foreground *clx-background-pixel*)
+	(xlib:draw-rectangle drawable gcontext
+			     (coerce (round x1) 'xlib:card16)
+			     (coerce (round y1) 'xlib:card16)
+			     width
+			     height
+			     fill)
+	;; set-drawing-mode to draw. set boole to return integer
+	(setf (xlib:gcontext-function gcontext) 2))))
   (unless (eq (context-background-mode context) :transparent)
     (setf (xlib:window-background (context-view context))
           *clx-background-pixel*))
@@ -1065,7 +1078,8 @@ are already focused."
 (defmethod context-fill-view ((context clx-context) &optional (agent *context-fill-agent*))
   (let ((size (context-size context)))
     (flet ((do-fill ()
-             (xlib:draw-rectangle (context-view context)
+             (xlib:draw-rectangle (context-backing-pixmap context)
+				  ;; (context-view context)
                                   (context-gcontext context)
                                   0 0
                                   (point-h size) (point-v size)
