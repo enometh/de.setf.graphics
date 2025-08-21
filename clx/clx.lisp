@@ -80,6 +80,11 @@ coordinate system transformations."))
   "default clx path rule.
    used as the initial value when establishing a projection context.")
 
+(defvar *use-backing-pixmap* nil
+  "if non-NIL drawing operations go through a backing pixmap object on
+context. This may be needed if the X server doesn't support a backing
+store for windows." )
+
 ;;;
 ;;; the clx context class
 
@@ -121,7 +126,8 @@ coordinate system transformations."))
      xlib:create-window, which controls which events are reported
      for the context's window.")
    (uri-scheme
-    :initform :clx :allocation :class))
+    :initform :clx :allocation :class)
+   (backing-pixmap :initform nil :accessor context-backing-pixmap))
   (:documentation
    "projection context for clx-based x window system operations."))
 
@@ -165,8 +171,20 @@ coordinate system transformations."))
     (setf (context-gcontext context) *clx-gcontext*)
     (xlib:with-gcontext (*clx-gcontext* :foreground *clx-white-pixel*
                                         :background *clx-black-pixel*)
-      (unwind-protect (funcall function)
-        (xlib:display-force-output *clx-display*)))))
+      (unwind-protect
+	   (if *use-backing-pixmap*
+	       ;;madhu 250821 - arrange to have abstract-projection
+	       ;; draw on the backing-store by binding projection
+	       ;; *context-view* to the backing pixmap
+	       (cond (*context-view*
+		      (assert (xlib:pixmap-equal *context-view*
+						 (context-backing-pixmap context)))
+		      (funcall function))
+		     (t (let ((*context-view*
+			       (context-backing-pixmap context)))
+			  (funcall function))))
+	       (funcall function))
+	(xlib:display-force-output *clx-display*)))))
 
 (defmethod call-with-projection-context
            ((function t) (context clx-context)
@@ -358,6 +376,51 @@ coordinate system transformations."))
   nil)
 
 
+;; careful here, this can gets called from context-view should not
+;; call context-view.
+(defun maybe-reinitialize-backing-pixmap (context &optional view)
+  (with-slots ((pixmap backing-pixmap) (window view)) context
+    (cond (view (check-type view xlib:drawable)
+		(when window
+		  (assert (eql view window))))
+	  (t (assert (eql window (context-view context)))
+	     (setq view (context-view context))))
+    (when (and (xlib:pixmap-p pixmap)
+	       (not (and (= (xlib:drawable-depth view)
+			    (xlib:drawable-depth pixmap))
+			 (= (xlib:drawable-height view)
+			    (xlib:drawable-height pixmap))
+			 (= (xlib:drawable-depth view)
+			    (xlib:drawable-depth pixmap)))))
+      (xlib:free-pixmap pixmap)
+      (setq pixmap nil))
+    (unless pixmap
+      (setq pixmap (xlib:create-pixmap :height (xlib:drawable-height view)
+				       :width (xlib:drawable-width view)
+				       :depth (xlib:drawable-depth view)
+				       :drawable view)))))
+
+(defun maybe-paint-from-backing-pixmap (context
+					&key (x 0) (y 0) width height)
+  "Repaint backing pixmap onto display window"
+  (with-slots ((pixmap backing-pixmap) gcontext) context
+    (when (xlib:pixmap-p pixmap)
+      (let ((window  (context-view context)))
+	(unless width (setq width (xlib:drawable-width pixmap)))
+	(unless height (setq height (xlib:drawable-height pixmap)))
+	(xlib:copy-area pixmap gcontext
+			x y width height
+			window
+			x y)
+	;;#+nil				;XXX
+	(xlib:display-force-output (context-display context))))))
+
+
+(defmethod context-draw-contents ((context clx-context) &key destination &allow-other-keys)
+  (declare (ignore destination))
+  (when *use-backing-pixmap*
+    (maybe-paint-from-backing-pixmap context)))
+
 (defmethod context-make-view ((context clx-context)
                                 &key
                                 (window-title (or (context-get context :window-title) "CLX"))
@@ -408,6 +471,8 @@ coordinate system transformations."))
                                          ',(context-name context)
                                          ',(xlib:window-id window))
                               )
+      (if *use-backing-pixmap*
+	  (maybe-reinitialize-backing-pixmap context window))
       (when show-p (xlib:map-window window))
       (xlib:display-force-output display)
       (setf (context-get context :view-size) view-size)
@@ -419,9 +484,15 @@ coordinate system transformations."))
   (setf (context-get context :view-size)
         (make-point (xlib:drawable-width view) (xlib:drawable-height view)))
   (setf (context-get context :view-position)
-        (make-point (xlib:drawable-x view) (xlib:drawable-y view))))
+        (make-point (xlib:drawable-x view) (xlib:drawable-y view)))
+  (if *use-backing-pixmap*
+      (maybe-reinitialize-backing-pixmap context view)))
 
 (defmethod context-close-view ((context clx-context) (view xlib:window))
+  (if *use-backing-pixmap*
+      (when (xlib:pixmap-p (context-backing-pixmap context))
+	(xlib:free-pixmap  (context-backing-pixmap context))
+	(setf (context-backing-pixmap context) nil)))
   (xlib:destroy-window view)
   (xlib:display-force-output (context-display context))
   (setf (view-projection-context view) nil)
@@ -579,7 +650,9 @@ coordinate system transformations."))
   "render a list of port locations in a clx gcontext."
   (let ((draw-line-geometry-fill-p nil))
     (flet ((draw-line-geometry ()
-             (xlib:draw-lines (context-view *projection-context*)
+             (xlib:draw-lines (if *use-backing-pixmap*
+				  (context-backing-pixmap *projection-context*)
+				  (context-view *projection-context*))
                               *clx-gcontext* port-location-list
                               :fill-p draw-line-geometry-fill-p))
            (g&p (render pixel fill-rule)
@@ -606,7 +679,9 @@ coordinate system transformations."))
                      (let ((locations port-location-list)
                            (x nil) (y nil))
                        (loop (unless (setf x (pop locations) y (pop locations)) (return))
-                             (xlib:draw-line (context-view *projection-context*)
+                             (xlib:draw-line (if *use-backing-pixmap*
+						 (context-backing-pixmap *projection-context*)
+						 (context-view *projection-context*))
                                              *clx-gcontext* x y x y nil))))
                     (:surfaces
                      (g&p #'draw-line-geometry *clx-fill-pixel* *clx-path-rule*))))
@@ -931,7 +1006,9 @@ are already focused."
                                  :initial-element 0)))
           (setf image (xlib:create-image :data data :format :z-pixmap
                                          :depth (min depth (xlib:drawable-depth
-                                                            (context-view context)))
+							    (if *use-backing-pixmap*
+								(context-backing-pixmap context)
+								(context-view context))))
                                          :bits-per-pixel (ecase depth
                                                            (8 8)
                                                            (24 32)
@@ -1001,6 +1078,19 @@ are already focused."
 
 
 (defmethod context-clear-view ((context clx-context))
+  (if *use-backing-pixmap*
+      (with-slots (gcontext (drawable backing-pixmap)) context
+	(let ((fill t) (x1 0) (y1 0) (width (xlib:drawable-width drawable))
+	      (height (xlib:drawable-height drawable)))
+	  (xlib:with-gcontext (gcontext :foreground *clx-background-pixel*)
+	    (xlib:draw-rectangle drawable gcontext
+				 (coerce (round x1) 'xlib:card16)
+				 (coerce (round y1) 'xlib:card16)
+				 width
+				 height
+				 fill)
+	    ;; set-drawing-mode to draw. set boole to return integer
+	    (setf (xlib:gcontext-function gcontext) 2)))))
   (unless (eq (context-background-mode context) :transparent)
     (setf (xlib:window-background (context-view context))
           *clx-background-pixel*))
@@ -1009,7 +1099,9 @@ are already focused."
 (defmethod context-fill-view ((context clx-context) &optional (agent *context-fill-agent*))
   (let ((size (context-size context)))
     (flet ((do-fill ()
-             (xlib:draw-rectangle (context-view context)
+             (xlib:draw-rectangle (if *use-backing-pixmap*
+				      (context-backing-pixmap context)
+				      (context-view context))
                                   (context-gcontext context)
                                   0 0
                                   (point-h size) (point-v size)
@@ -1022,6 +1114,8 @@ are already focused."
         (restore-projection-variable)))))
 
 (defmethod context-flush-view ((context clx-context))
+  (if *use-backing-pixmap*
+      (maybe-paint-from-backing-pixmap context))
   (xlib:display-force-output (context-display context))
   )
   
