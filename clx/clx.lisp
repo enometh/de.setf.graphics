@@ -263,6 +263,8 @@ coordinate system transformations."))
 
 
 (defgeneric clx-controller-dispatch-event (controller context event &key &allow-other-keys)
+  (:method ((controller clx-controller) (context clx-context) (event (eql :no-exposure))
+            &key window))
   (:method ((controller clx-controller) (context clx-context) (event (eql :exposure))
             &key window)
            (context-expose-event-handler controller context window))
