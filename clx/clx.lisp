@@ -860,7 +860,7 @@ are already focused."
            (flet ((text-geometry ()
                     (clx-assert-foreground-pixel *clx-stroke-pixel*)
                     (xlib:draw-glyphs drawable *clx-gcontext* x y text)))
-             (declare (dynamic-extent #'geometry))
+             (declare (dynamic-extent #'text-geometry))
              (if (and font (setf font (get-font *projection-context* font)))
                (let ((old-font (xlib:gcontext-font *clx-gcontext*)))
                  (unwind-protect
