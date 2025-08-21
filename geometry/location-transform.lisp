@@ -365,6 +365,8 @@ each binding take the form <code>((<i>x</i> <i>y</i> &optional <i>z</i>) <i>worl
                  (y (location-y p))
                  (z (location-z p))
                  (hr 0.0d0))
+	     #+nil ;;madhu 250821 - avoid a segfault with clozure when
+		   ;;(setq *READ-DEFAULT-FLOAT-FORMAT* 'SINGLE-FLOAT)
              (declare (type double-float x y z hr)
                       (dynamic-extent x y z hr))
              (symbol-macrolet ((xr (aref result 0))
