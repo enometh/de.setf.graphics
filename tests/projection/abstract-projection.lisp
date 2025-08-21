@@ -150,6 +150,9 @@
                                                       (path-constituents :lines)
                                                       (stroke-agent #@(|3| 0.5 0.0 0.0)))))
 
+#+nil
+(with-projection-context (*clx-c*) (test:execute-test :og.projection.arc.1))
+
 (og::test og.projection.arc*2.1
   (arc*2 -0.5 0.0  0.5 #.pi #.pi :clockwise (lambda (render)
                                               (path-effect :paint)

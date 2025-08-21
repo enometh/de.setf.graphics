@@ -358,13 +358,16 @@ each binding take the form <code>((<i>x</i> <i>y</i> &optional <i>z</i>) <i>worl
   (:method ((m array) (p location-2) &optional (result (location-vector)))
            "tranform a location instance. the coordinates are always double-float.
             a 2-d point (non-fixnum) is taken to be at z==0"
-           (declare (optimize (speed 3) (safety 0))
+           (declare #-ccl(optimize (speed 3) (safety 0))
                     (type location-vector result)
                     (type transform-matrix m))
            (let ((x (location-x p))
                  (y (location-y p))
                  (z (location-z p))
                  (hr 0.0d0))
+             (with-coerced-variables ((double-float x y z))
+	     ;;#+nil ;;madhu 250821 - avoid a segfault with clozure when
+		   ;;(setq *READ-DEFAULT-FLOAT-FORMAT* 'SINGLE-FLOAT)
              (declare (type double-float x y z hr)
                       (dynamic-extent x y z hr))
              (symbol-macrolet ((xr (aref result 0))
@@ -393,7 +396,7 @@ each binding take the form <code>((<i>x</i> <i>y</i> &optional <i>z</i>) <i>worl
                                 (+ (* z (aref m 2 2))
                                    (aref m 3 2)))
                              hr)))
-               (setf (aref result 3) 1.0d0)))
+               (setf (aref result 3) 1.0d0))))
            result)
 
   (:method ((m array) (p vector) &optional result)
