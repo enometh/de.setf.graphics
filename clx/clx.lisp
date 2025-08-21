@@ -121,7 +121,8 @@ coordinate system transformations."))
      xlib:create-window, which controls which events are reported
      for the context's window.")
    (uri-scheme
-    :initform :clx :allocation :class))
+    :initform :clx :allocation :class)
+   (backing-pixmap :initform nil :accessor context-backing-pixmap))
   (:documentation
    "projection context for clx-based x window system operations."))
 
@@ -165,8 +166,12 @@ coordinate system transformations."))
     (setf (context-gcontext context) *clx-gcontext*)
     (xlib:with-gcontext (*clx-gcontext* :foreground *clx-white-pixel*
                                         :background *clx-black-pixel*)
-      (unwind-protect (funcall function)
-        (xlib:display-force-output *clx-display*)))))
+      ;;;madhu 250821 - arrange to have abstract-projection draw on
+      ;;;the backing-store
+      (assert (null *context-view*))
+      (let ((*context-view* (context-backing-pixmap context)))
+	(unwind-protect (funcall function)
+	  (xlib:display-force-output *clx-display*))))))
 
 (defmethod call-with-projection-context
            ((function t) (context clx-context)
@@ -358,6 +363,50 @@ coordinate system transformations."))
   nil)
 
 
+;; careful here, this can gets called from context-view should not
+;; call context-view.
+(defun maybe-reinitialize-backing-pixmap (context &optional view)
+  (with-slots ((pixmap backing-pixmap) (window view)) context
+    (cond (view (check-type view xlib:drawable)
+		(when window
+		  (assert (eql view window))))
+	  (t (assert (eql window (context-view context)))
+	     (setq view (context-view context))))
+    (when (and (xlib:pixmap-p pixmap)
+	       (not (and (= (xlib:drawable-depth view)
+			    (xlib:drawable-depth pixmap))
+			 (= (xlib:drawable-height view)
+			    (xlib:drawable-height pixmap))
+			 (= (xlib:drawable-depth view)
+			    (xlib:drawable-depth pixmap)))))
+      (xlib:free-pixmap pixmap)
+      (setq pixmap nil))
+    (unless pixmap
+      (setq pixmap (xlib:create-pixmap :height (xlib:drawable-height view)
+				       :width (xlib:drawable-width view)
+				       :depth (xlib:drawable-depth view)
+				       :drawable view)))))
+
+(defun maybe-paint-from-backing-pixmap (context
+					&key (x 0) (y 0) width height)
+  "Repaint backing pixmap onto display window"
+  (with-slots ((pixmap backing-pixmap) gcontext) context
+    (when (xlib:pixmap-p pixmap)
+      (let ((window  (context-view context)))
+	(unless width (setq width (xlib:drawable-width pixmap)))
+	(unless height (setq height (xlib:drawable-height pixmap)))
+	(xlib:copy-area pixmap gcontext
+			x y width height
+			window
+			x y)
+	;;#+nil				;XXX
+	(xlib:display-force-output (context-display context))))))
+
+
+(defmethod context-draw-contents ((context clx-context) &key destination &allow-other-keys)
+  (declare (ignore destination))
+  (maybe-paint-from-backing-pixmap context))
+
 (defmethod context-make-view ((context clx-context)
                                 &key
                                 (window-title (or (context-get context :window-title) "CLX"))
@@ -408,6 +457,7 @@ coordinate system transformations."))
                                          ',(context-name context)
                                          ',(xlib:window-id window))
                               )
+      (maybe-reinitialize-backing-pixmap context window)
       (when show-p (xlib:map-window window))
       (xlib:display-force-output display)
       (setf (context-get context :view-size) view-size)
@@ -419,9 +469,13 @@ coordinate system transformations."))
   (setf (context-get context :view-size)
         (make-point (xlib:drawable-width view) (xlib:drawable-height view)))
   (setf (context-get context :view-position)
-        (make-point (xlib:drawable-x view) (xlib:drawable-y view))))
+        (make-point (xlib:drawable-x view) (xlib:drawable-y view)))
+  (maybe-reinitialize-backing-pixmap context view))
 
 (defmethod context-close-view ((context clx-context) (view xlib:window))
+  (when (xlib:pixmap-p (context-backing-pixmap context))
+    (xlib:free-pixmap  (context-backing-pixmap context))
+    (setf (context-backing-pixmap context) nil))
   (xlib:destroy-window view)
   (xlib:display-force-output (context-display context))
   (setf (view-projection-context view) nil)

@@ -1066,8 +1066,12 @@ operation, the operation is ignored.</p>
              (funcall function *projection-context*)))
   (:method ((function t) (context view-context) &key &allow-other-keys)
            "if the context is a view-context, bind the respective view and delegate to the next method."
-           (let ((*context-view* (context-view context)))
-             (context-update-for-view context *context-view*)
+           ;;;madhu 250821- allow the context to supply a backings-store
+           ;;; on which to draw
+           (let* ((backing-store-view *context-view*)
+		  (context-view (context-view context))
+		  (*context-view* (or backing-store-view context-view)))
+             (context-update-for-view context context-view)
              (call-next-method)))
   (:method ((function t) (context delegate-context) &rest args)
            "if the context delegates, then recurse with the effective context."
