@@ -236,12 +236,16 @@ coordinate system transformations."))
                                      &key event-key event-window
                                      &allow-other-keys)
              (declare (dynamic-extent event-slots))
+	     (unless event-window
+	       (warn "process-clx-event: Skip event key ~A window ~A"
+		     event-key event-window))
+	     (when event-window
              ;; dispatch the event
              (let ((context (view-projection-context event-window)))
                (when context
                  (apply #'clx-controller-dispatch-event controller context event-key event-slots))
                ;; then return t if nothing else is there
-               (not (xlib:event-listen display 0)))))
+               (not (xlib:event-listen display 0))))))
       (declare (dynamic-extent #'process-clx-event))
 
       (when (or (xlib:event-listen display timeout)
