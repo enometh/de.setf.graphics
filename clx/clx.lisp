@@ -266,8 +266,18 @@ coordinate system transformations."))
   (:method ((controller clx-controller) (context clx-context) (event (eql :no-exposure))
             &key window))
   (:method ((controller clx-controller) (context clx-context) (event (eql :exposure))
-            &key window)
-           (context-expose-event-handler controller context window))
+            &key window count width height x y)
+   (declare (ignorable window width height x y))
+   ;;madhu 250821 - this calls context-draw-contents, but since we are
+   ;;using a backing pixmap we can bypass that
+   #+nil
+           (context-expose-event-handler controller context window)
+   (cond ((zerop count); just handle the last exposure
+	  (maybe-paint-from-backing-pixmap context))
+	 (t ;; if you're not handling the last exposure,
+	  ;; :x x :y y :width  width :height  height
+	  (maybe-paint-from-backing-pixmap context :x x :y y :width width :height height)
+	  )))
   (:method ((controller clx-controller) (context clx-context) (event (eql :button-press))
             &key x y window)
            (context-click-event-handler controller context (make-point x y) window))
