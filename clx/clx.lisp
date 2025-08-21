@@ -60,14 +60,14 @@ coordinate system transformations."))
 (defvar *clx-gcontext* nil)
 
 (defparameter *clx-black-pixel* 0)
-(defparameter *clx-white-pixel* 0)
+(defparameter *clx-white-pixel* 16777215)
 (defparameter *clx-background-color* (short-location-vector))
 (defparameter *clx-fill-color* (short-location-vector))
 (defparameter *clx-stroke-color* (short-location-vector))
 (defparameter *clx-background-pixel* 0)
 (defparameter *clx-fill-pixel* 0)
 (defparameter *clx-stroke-pixel* 0)
-(defparameter *clx-foreground-pixel* 0)
+(defparameter *clx-foreground-pixel* 16777215)
 
 (defparameter *clx-path-constituents* :lines
   "default clx path constituents.
