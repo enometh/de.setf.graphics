@@ -205,7 +205,7 @@ coordinate system transformations."))
 
 (defun make-clx-controller-process (controller)
   (declare (ignorable controller))
-  #+(or ccl sb-threads)
+  #+(or ccl sbcl #+nil sb-threads)
   (de.setf.utility.lock:run-in-thread #'clx-controller-loop
                                       :name (format nil "CLX events [~a:~a]"
                                                     (xlib:display-host (controller-display controller))
