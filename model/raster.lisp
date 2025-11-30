@@ -202,7 +202,6 @@
 
   
 
-#+skippy
 (defmethod make-gif ((raster raster))
   "transform a raster instance into a gif instance.
    compute the color map naively by eliminating the duplicates from the data.
