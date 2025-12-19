@@ -1066,7 +1066,7 @@ operation, the operation is ignored.</p>
              (funcall function *projection-context*)))
   (:method ((function t) (context view-context) &key &allow-other-keys)
            "if the context is a view-context, bind the respective view and delegate to the next method."
-           ;;;madhu 250821- allow the context to supply a backings-store
+           ;;;madhu 250821- allow the context to supply a backing-store
            ;;; on which to draw
            (let* ((backing-store-view *context-view*)
 		  (context-view (context-view context))

@@ -167,11 +167,16 @@ coordinate system transformations."))
     (xlib:with-gcontext (*clx-gcontext* :foreground *clx-white-pixel*
                                         :background *clx-black-pixel*)
       ;;;madhu 250821 - arrange to have abstract-projection draw on
-      ;;;the backing-store
-      (assert (null *context-view*))
-      (let ((*context-view* (context-backing-pixmap context)))
-	(unwind-protect (funcall function)
-	  (xlib:display-force-output *clx-display*))))))
+      ;;;the backing-store by binding projection *context-view* to the
+      ;;;backing pixmap
+      (unwind-protect (cond (*context-view*
+			     (assert (xlib:pixmap-equal *context-view*
+							(context-backing-pixmap context)))
+			     (funcall function))
+			    (t (let ((*context-view*
+				      (context-backing-pixmap context)))
+				 (funcall function))))
+	(xlib:display-force-output *clx-display*)))))
 
 (defmethod call-with-projection-context
            ((function t) (context clx-context)
@@ -1102,6 +1107,7 @@ are already focused."
         (restore-projection-variable)))))
 
 (defmethod context-flush-view ((context clx-context))
+  (maybe-paint-from-backing-pixmap context)
   (xlib:display-force-output (context-display context))
   )
   
