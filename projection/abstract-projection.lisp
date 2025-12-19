@@ -1206,6 +1206,10 @@ operation, the operation is ignored.</p>
   (setf pathname (subseq pathname (1+ (position #\: pathname))))
   (asdf:run-shell-command "open ~a" pathname))
 
+#(and (not digitool) slynk)
+(defun open-document (pathname)
+  (slynk:eval-in-emacs `(prog1 nil (find-file ,(namestring (translate-logical-pathname pathname))))))
+
 ;;; (setf (get 'tmp 'line*2) '(:time 100 :space 200))
 ;;; (write-monitoring-report-as 'tmp #p"macintosh hd;tmp;monitor-result.html" :text/html)
 ;;; (ed #p"og:test.html")
