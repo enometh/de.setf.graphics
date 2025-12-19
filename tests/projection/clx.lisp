@@ -85,8 +85,10 @@
     )
   
   ;; no (setf (context-view *clx-c*) *clc-w*)
-  (setq *clx-c* (make-instance 'clx-context :display *clx-default-display*
-                               :view-size *test-view-size*))
+  (if *clx-c*
+    (assert (eql (context-display *clx-c*) *clx-default-display*))
+    (setq *clx-c* (make-instance 'clx-context :display *clx-default-display*
+				 :view-size *test-view-size*)))
   (setq *test-context* *clx-c*)
 
   ;;madhu 250809
