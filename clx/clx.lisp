@@ -334,7 +334,12 @@ coordinate system transformations."))
            (context-key-up-event-handler controller context
                                          (xlib:keycode->character (controller-display controller)
                                                                   code modifiers)
-                                         nil)))
+                                         nil))
+  (:method ((controller clx-controller) (context clx-context) (event  (eql :client-message)) &key)
+   (format t "ignoring event client-message~&"))
+  (:method ((controller clx-controller) (context clx-context) (event  (eql :graphics-exposure)) &key)
+   (format t "ignoring event graphics-expoure~&"))
+)
 
 
 (defmethod context-display ((context clx-context))
