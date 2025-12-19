@@ -211,16 +211,50 @@ coordinate system transformations."))
         (make-clx-controller-process instance)))
 
 
-(defvar *clx-display-processes* nil)
+;;;madhu 251219 ensure singleton process. should lock-protect access this
+(defvar *clx-display-processes* (list nil))
+
+(defun reset-display-processes ()
+  (loop for (controller . process) in (cdr *clx-display-processes*)
+	do (progn
+	     #+bordeaux-threads
+	     (when (bordeaux-threads:thread-alive-p process)
+	        (bordeaux-threads:destroy-thread process))))
+  (assert (null (car *clx-display-processes*)))
+  (setf (cdr *clx-display-processes*) nil))
+
+(defun find-display-process-for-controller (controller)
+  (let* ((elt (assoc controller (cdr *clx-display-processes*))))
+    (when elt
+      (let ((proc (cdr elt)))
+	#-bordeaux-threads
+	proc
+	#+bordeaux-threads
+	(cond ((bordeaux-threads:thread-alive-p proc)
+	       proc)
+	      (t (remove-display-process-for-controller controller)
+		 nil))))))
+
+(defun remove-display-process-for-controller (controller)
+  (let ((elt (assoc controller (cdr *clx-display-processes*))))
+    (when elt
+      (rplacd *clx-display-processes*
+	      (delete elt (cdr *clx-display-processes*))))))
+
+(defun clx-controller-loop-1 (controller)
+  (unwind-protect (clx-controller-loop controller)
+    (remove-display-process-for-controller controller)))
 
 (defun make-clx-controller-process (controller)
-  (declare (ignorable controller))
-  #+(or ccl sbcl #+nil sb-threads)
-  (de.setf.utility.lock:run-in-thread #'clx-controller-loop
+  (or (find-display-process-for-controller controller)
+      (push (cons controller
+		  (de.setf.utility.lock:run-in-thread #'clx-controller-loop-1
                                       :name (format nil "CLX events [~a:~a]"
                                                     (xlib:display-host (controller-display controller))
                                                     (xlib:display-display (controller-display controller)))
                                       :parameters (list controller)))
+	    (cdr *clx-display-processes*))))
+
 
 
 (defun clx-controller-loop (controller)
