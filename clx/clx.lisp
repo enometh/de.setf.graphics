@@ -395,7 +395,7 @@ coordinate system transformations."))
                                 (t :r)))
                    (width (cond ((find :narrow style-names) :condensed)
                                 (t :normal))))
-               (format nil "~(-*-~a-~a-~a-~a-*-*-~d-*~)"
+               (format nil "~(-*-~a-~a-~a-~a-*-*-~d-*-*-*-*-*-*~)"
                        family weight slant width (* point-size 10))))))
 ;;; (clx-font-designator '("times" 8 :bold :italic))
 ;;; (clx-font-designator '("courier" 10 :bold))
