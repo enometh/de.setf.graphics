@@ -911,30 +911,55 @@ are already focused."
 
 ;;;
 ;;; arc
+#||
+* clx.info:
+     [...] Each arc is specified by a rectangle
+     (x, y, width, and height) and two angles (angle1 and
+     angle2).  The angles are signed integers in radians, with
+     positive indicating counterclockwise motion and negative indicating
+     clockwise motion.  The start of the arc is specified by angle1,
+     and the path and extent of the arc is specified by angle2
+     relative to the start of the arc.  If the magnitude of angle2 is
+     greater than 360 degrees, it is truncated to 360 degrees.  The x
+     and y coordinates of the rectangle are relative to the
+     drawable's origin.
+
+||#
+
+(defun radians-mod-pi (rad)
+  (if (plusp rad)
+      (if (> (setq rad (mod rad (* 2 pi))) pi)
+	  (mod rad (- pi))
+	  rad)
+      (if (< (setq rad (mod rad (* -2 pi)))  (- pi))
+	  (mod rad pi)
+	  rad)))
 
 (defun clx-arc-port (drawable location radius start-radians end-radians direction &optional variables)
-  "draw a rectangle given the port location"
+  "draw an arc given the port location"
   (declare (type location-vector location))
   #+og.assert-types (progn (assert-type drawable xlib:drawable)
                            (assert-type location location-vector)
                            (assert-types (radius start-radians end-radians) number)
                            (assert-type variables (or sequence function)))
-  (ecase direction
-    (:clockwise )
-    (:counterclockwise (rotatef start-radians end-radians)))
-  (unless (typep start-radians 'double-float)
-    (setf start-radians (float start-radians 1.0d0)))
-  (unless (typep end-radians 'double-float)
-    (setf end-radians (float end-radians 1.0d0)))
-  
   (let* ((x (%round (aref location 0))) (y (%round (aref location 1)))
-         (width (* radius 2))          ; should have 2-d size
+         (width (round (* radius 2)))		; should have 2-d size
          (height width)
-         (arc-geometry-fill-p nil))
+         (arc-geometry-fill-p nil)
+	 (start (radians-mod-pi start-radians))
+	 (end (radians-mod-pi end-radians))
+	 (extent (mod (- end start) +2pi+)))
+    (ecase direction
+      (:clockwise
+       (if (not (minusp extent))
+	   (setq extent (- +2pi+ extent) start end)))
+      (:counterclockwise
+       (if (not (plusp extent))
+	   (setq extent (- +2pi+ extent) start  end))))
     (flet ((arc-geometry ()
              (xlib:draw-arc drawable *clx-gcontext*
                             (- x radius) (- y radius) width height
-                            start-radians end-radians
+                            start extent
                             arc-geometry-fill-p))
            (g&p (render pixel fill)
              (unless (= pixel *clx-foreground-pixel*)
@@ -954,11 +979,11 @@ are already focused."
                      (unless (= *clx-stroke-pixel* *clx-foreground-pixel*)
                        (setf (xlib:gcontext-foreground *clx-gcontext*)
                              (setf *clx-foreground-pixel* *clx-stroke-pixel*)))
-                     (let ((x1 (+ x (* (cos start-radians) radius)))
-                           (y1 (+ y (* (sin start-radians) radius))))
+                     (let ((x1 (+ x (* (cos start) radius)))
+                           (y1 (+ y (* (sin start) radius))))
                        (xlib:draw-line drawable *clx-gcontext* x1 y1 x1 y1 nil)
-                       (setf x1 (+ x (* (cos end-radians) radius))
-                             y1 (+ y (* (sin end-radians) radius)))
+                       (setf x1 (+ x (* (cos end) radius))
+                             y1 (+ y (* (sin end) radius)))
                        (xlib:draw-line drawable *clx-gcontext* x1 y1 x1 y1 nil)))
                     (:surfaces
                      (g&p #'arc-geometry *clx-fill-pixel* :winding))))
