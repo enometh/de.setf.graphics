@@ -293,15 +293,16 @@
 ;;; iff there already is one
 
 #+nil
+(when (typep *clx-c* 'clx-context)
+  (execute-graphics-clx-tests))
+
+;;; if the display is lost or to start over
+#+nil
 (progn
   (ignore-errors (xlib:close-display *clx-default-display*))
   (setq *clx-default-display* nil)
   (setq *clx-c* nil)
   (initialize-clx-tests))
-
-#+nil
-(when (typep *clx-c* 'clx-context)
-  (execute-graphics-clx-tests))
 
 ;; (setf (context-log *clx-c*) nil) ;;  *trace-output*)
 ;; (with-projection-context (*clx-c*) (test:execute-test :og.projection.poly.3 :break-on-signals t))
@@ -314,4 +315,18 @@
 ;; (time (with-projection-context (*clx-c*) (initialize-test-context *clx-c*) (test-sampler-animation :count 100 :sleep nil)))
 ;; (with-projection-context (*clx-c*) (initialize-test-context *clx-c*) (run-life :cycles 256 :sleep nil :initialize-p t :size 512))
 
+
+;;; ----------------------------------------------------------------------
+;;;
+;;; convenience
+;;;
 
+(defmacro t1 (test)
+  `(with-projection-context (*clx-c*)
+     (initialize-test-context *clx-C*)
+     (test:execute-test ,test :debug t :force-p t)))
+
+(defmacro w (&body body)
+  `(with-projection-context (*clx-c*)
+     (prog1 (progn ,@body)
+       (flush-view))))
