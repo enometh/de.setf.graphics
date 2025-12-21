@@ -151,12 +151,13 @@
   (progn
     (assert (typep *projection-context* 'clx-context))
     (let* ((context *projection-context*)
-           (view (context-view context))
+           (win (context-view context))
+	   (view (context-backing-pixmap *projection-context*))
            (size (context-size context))
            (width (point-h size))
            (height (point-v size)))
       ;; (print (context-state))
-      (xlib:clear-area view)
+      (xlib:clear-area win)
       ;; (sleep 1)
       (xlib:draw-rectangle view *clx-gcontext*
                            4 4 (- width 8) (- height 8)
@@ -204,7 +205,8 @@
                                  1w (- height 1h))
                          :fill-p nil))
         ;; (print (context-state))
-        t))))
+	(maybe-paint-from-backing-pixmap *projection-context*))
+        t)))
 ;; (test:execute-test :og.clx.ffi)
 
 #+nil
