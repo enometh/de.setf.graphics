@@ -45,10 +45,12 @@
 					    :depends-on ("drawing-mode"
 							 "sampler"
 							 "life-in-color"))
-					   (:file "ops-per-second")))))))
+					   (:file "ops-per-second")
+					   (:file "clx")))))))
 
 #+nil
-(mk:oos :de.setf.graphics.tests :load :compile-during-load t)
+(let (#+lispworks(*handle-warn-on-redefinition* :warn))
+  (mk:oos :de.setf.graphics.tests :load :compile-during-load t))
 
 (mk:defsystem :de.setf.graphics.clx
   :source-pathname *de.setf.graphics-source-dir*
