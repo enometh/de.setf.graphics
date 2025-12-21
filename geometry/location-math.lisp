@@ -174,7 +174,7 @@
               (setf (%location-port-x result) (,op (%location-port-x p1))
                     (%location-port-y result) (,op (%location-port-y p1))
                     (%location-port-z result) (,op (%location-port-z p1))
-                    (location-port-h result) 1)))
+                    (%location-port-h result) 1)))
            (location-ndc
             (locally (declare (ftype (function (location-ndc) single-float)
                                      %location-ndc-x %location-ndc-y %location-ndc-z))
