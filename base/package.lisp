@@ -39,7 +39,11 @@
   (:intern
    :version
    :*version*)
+  (:export :children)
   (:export
+   :arc
+   :arc*2
+   :arc*3
    :*class.*polyline*
    :*class.*polyline-strip*
    :*class.line*
@@ -73,6 +77,9 @@
    :cartesian->spherical
    :child
    :child-node
+   :circle
+   :circle*2
+   :circle*3
    :clear-agent
    :clear-view
    :clx-context
@@ -259,6 +266,8 @@
    :properties
    :quickdraw-context
    :raster
+   :raster*2
+   :raster*3
    :rectangle
    :rectangle*2
    :rectangle*3
