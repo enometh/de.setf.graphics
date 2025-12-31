@@ -501,6 +501,7 @@ store for windows." )
                                        :x x :y y :width width :height height
                                        :background black
                                        :border white
+				       :backing-store :when-mapped
                                        :border-width 1
                                        :colormap (xlib:screen-default-colormap screen)
                                        :bit-gravity :center
