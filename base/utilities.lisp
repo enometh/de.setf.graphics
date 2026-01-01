@@ -34,6 +34,8 @@
   "If the runtime provides destructive, inline-able, and/or domain-specific implemenentations for these
  operators inexcess of what declarations can accomplish, define the expansion here.")
 
+#+nil
+(progn
 (defMacro %round (datum)
   #+ccl `(ccl::%round-nearest-double-float->fixnum , datum)
   #-ccl `(round ,datum))
@@ -57,6 +59,28 @@
 (defMacro double-float! (datum result)
   #+ccl `(ccl::%int-to-dfloat ,datum ,result)
   #-ccl `(setf ,result (coerce ,datum 'double-float)))
+)
+
+(progn
+(defMacro %round (datum)
+  `(round ,datum))
+
+(defMacro %rounds (datum)
+  `(round ,datum))
+
+(defmacro sin! (angle result)
+  `(setf ,result (sin ,angle)))
+
+(defmacro cos! (angle result)
+  `(setf ,result (cos ,angle)))
+
+(defMacro sqrt! (datum result)
+  `(setf ,result (sqrt ,datum)))
+
+(defMacro double-float! (datum result)
+  `(setf ,result (coerce ,datum 'double-float)))
+)
+
 
 
 ;;; utilities
