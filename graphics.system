@@ -8,14 +8,6 @@
 ;;;
 (in-package "CL-USER")
 
-#+ccl
-(setq  *read-default-float-format* 'double-float)
-
-(unless (equal *read-default-float-format* 'double-float)
-  (with-simple-restart (cont "Set *read-default-float-format* to 'double-float")
-    (error "de.setf.graphics doesn't seem to work if *read-default-float-format* is not 'double-float"))
-  (setq *read-default-float-format* 'double-float))
-
 
 (defvar *de.setf.graphics-source-dir*
   (merge-pathnames "Github/de.setf.graphics/"
