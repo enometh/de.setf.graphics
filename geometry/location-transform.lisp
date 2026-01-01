@@ -663,8 +663,8 @@ each binding take the form <code>((<i>x</i> <i>y</i> &optional <i>z</i>) <i>worl
 (defun test-transform (count xform p r)
   (dotimes (x count) (location-transform xform p r)))
 
-(defun test-scale-magnitude (count xform p &optional consumer &aux result)
-  (dotimes (x count) (setf result (location-scale-magnitude xform p consumer)))
+(defun test-scale-magnitude (count xform p &optional #+nil consumer &aux result)
+  (dotimes (x count) (setf result (location-scale-magnitude xform p #+nil consumer)))
   result)
 
 (let* ((scale (make-location-vector :x 0.0d0 :y 1.0d0 :z 2.0d0))
