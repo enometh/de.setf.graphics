@@ -1461,5 +1461,35 @@ are already focused."
 
 |#
 
+;;madhu 260102
+(defun make-raster-from-image-z (img)
+  (check-type img xlib:image-z)
+  (assert (= (xlib:image-z-bits-per-pixel img) 32))
+  (let* ((p (xlib:image-z-pixarray img))
+	 (out (make-array (list (* (array-dimension p 0))
+				(* (array-dimension p 1))))))
+    (loop for row below (array-dimension p 0)
+	  do (loop for col below (array-dimension p 1)
+		   for n = (aref p row col)
+		   for (b g r a) = (list (ldb (byte 8 0) n)
+					 (ldb (byte 8 8) n)
+					 (ldb (byte 8 16) n)
+					 (ldb (byte 8 24) n))
+		   do (setf (aref out row col) (list r g b a))))
+    (make-instance 'raster :sample-depth 32 :sample-data out)))
+
+(defun make-raster-from-window (window)
+  (check-type window xlib:drawable)
+  (make-raster-from-image-z
+   (xlib:get-image window :format :z-pixmap
+		   :x 0 :y 0
+		   :width (xlib:drawable-width window)
+		   :height (xlib:drawable-height window))))
+
+(defun take-context-snapshot (context)
+  (make-raster-from-window (context-view context)))
+
+#+nil
+(skippy::write-gif (make-gif (take-context-snapshot *clx-c*)) "/tmp/1.gif")
 
 :de.setf.graphics
