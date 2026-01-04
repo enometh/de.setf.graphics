@@ -80,10 +80,11 @@ coordinate system transformations."))
   "default clx path rule.
    used as the initial value when establishing a projection context.")
 
-(defvar *use-backing-pixmap* nil
+(defvar *use-backing-pixmap* t
   "if non-NIL drawing operations go through a backing pixmap object on
 context. This may be needed if the X server doesn't support a backing
-store for windows." )
+store for windows, or even if it does, to preserve the image across
+window maps/unmaps." )
 
 ;;;
 ;;; the clx context class
