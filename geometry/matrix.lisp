@@ -127,7 +127,8 @@
                                         double-float double-float double-float double-float 
                                         &optional transform-matrix) transform-matrix)
                 matrix-set)
-         (ftype (function () location-vector) location-vector get-location-vector)
+         (ftype (function (&rest t) location-vector) location-vector)
+         (ftype (function () location-vector) get-location-vector)
          (ftype (function (double-float double-float double-float double-float
                                         &optional location-vector) location-vector)
                 location-vector-set))
