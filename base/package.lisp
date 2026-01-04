@@ -97,6 +97,7 @@
    :context-get
    :context-key-event-handler
    :context-key-up-event-handler
+   :context-log-message
    :context-make-view
    :context-mouse-up-event-handler
    :context-name
